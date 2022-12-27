@@ -43,7 +43,6 @@ func Encrypt(stringToEncrypt string) (string, error) {
 	//Encrypt the data using aesGCM.Seal
 	//Since we don't want to save the nonce somewhere else in this case, we add it as a prefix to the encrypted data. The first nonce argument in Seal is the prefix.
 	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
-	fmt.Sprintf("%x", ciphertext)
 	return fmt.Sprintf("%x", ciphertext), nil
 }
 
