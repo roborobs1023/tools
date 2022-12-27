@@ -67,23 +67,18 @@ func CompareKeys(keyid string) (bool, error) {
 		return false, err
 	}
 
-	block, err := pem.Decode(private)
-	if err != nil {
-		return false, err
-	}
+	block, _ := pem.Decode(private)
 
 	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return false, err
 	}
-	pubBlock, err := pem.Decode(public)
-	if err != nil {
-		return false, err
-	}
+	pubBlock, _ := pem.Decode(public)
+
 	pubKey, err := x509.ParsePKCS1PublicKey(pubBlock.Bytes)
 	if err != nil {
 		return false, err
 	}
 
-	return key.PublicKey.Equal(pubKey)
+	return key.PublicKey.Equal(pubKey), nil
 }
