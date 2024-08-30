@@ -3,6 +3,8 @@ package token
 import (
 	"fmt"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type JWT struct {
@@ -55,11 +57,11 @@ func (j JWT) Validate(token string) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("validate: %w", err)
 	}
-	
+
 	claims, ok := tok.Claims.(jwt.MapClaims)
 	if !ok || !tok.Valid {
 		return nil, fmt.Errorf("validate: invalid")
 	}
-	
+
 	return claims["dat"], nil
 }
