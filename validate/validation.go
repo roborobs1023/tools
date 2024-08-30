@@ -17,10 +17,17 @@ var (
 	domainRegex          = regexp.MustCompile(`(?i)^(?:([a-z0-9-]+|\*)\.)?([a-z0-9-]{1,61})\.([a-z0-9]{2,7})$`)
 	nonNumericStartRegex = regexp.MustCompile(`^[A-Za-z]*[A-Za-z][A-Za-z0-9-. _]*$`)
 )
+var (
+	disposableDomains = []string{"example.com", "example.org", "example.co", "example.net", "test.com", "test.org"}
+)
 
 type Config struct {
 	DisableDisposableEmailCheck bool
 	DisableCatchAllCheck        bool
+}
+
+func init() {
+	verifier.AddDisposableDomains(disposableDomains)
 }
 
 func Validate(val interface{}, cfg *Config) error {
