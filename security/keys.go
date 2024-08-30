@@ -6,6 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"os"
+	"path/filepath"
+
+	"github.com/hyperboloide/lk"
 )
 
 func GenerateRSAKeys() error {
@@ -81,4 +84,37 @@ func CompareKeys(keyid string) (bool, error) {
 	}
 
 	return key.PublicKey.Equal(pubKey), nil
+}
+
+func GenerateKeyPair(dir string) error {
+	private, err := lk.NewPrivateKey()
+
+	if err != nil {
+		return err
+	}
+
+	privateBytes, err := private.ToB32String()
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.Mkdir(dir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	privatePath := filepath.Join(dir, "private.key")
+
+	if err = os.WriteFile(privatePath, []byte(privateBytes), 0755); err != nil {
+		return err
+	}
+
+	publicPath := filepath.Join(dir, "pub.key")
+
+	publicKey := private.GetPublicKey().ToB32String()
+
+	return os.WriteFile(publicPath, []byte(publicKey), os.ModePerm)
 }
