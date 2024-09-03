@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	verifier             = emailverifier.NewVerifier().EnableAutoUpdateDisposable()
-	domainRegex          = regexp.MustCompile(`(?i)^(?:([a-z0-9-]+|\*)\.)?([a-z0-9-]{1,61})\.([a-z0-9]{2,7})$`)
+	verifier = emailverifier.NewVerifier().EnableAutoUpdateDisposable()
+	// domainRegex          = regexp.MustCompile(`(?i)^(?:([a-z0-9-]+|\*)\.)?([a-z0-9-]{1,61})\.([a-z0-9]{2,7})$`)
 	nonNumericStartRegex = regexp.MustCompile(`^[A-Za-z]*[A-Za-z][A-Za-z0-9-. _]*$`)
 )
 var (
@@ -87,6 +87,7 @@ fieldsLoop:
 					errs.Add(err)
 				}
 			case rule == "domain":
+
 				if err := validateDomain(field, fieldName); err != nil {
 					errs.Add(err)
 				}
@@ -209,7 +210,7 @@ func validateNonDisposableDomain(rules []string, field reflect.Value, fieldName 
 }
 
 func validateDomain(field reflect.Value, fieldName string) error {
-	if !domainRegex.MatchString(field.String()) {
+	if !CheckDomain(field.String()) {
 		return fmt.Errorf("%s is an invalid domain", fieldName)
 	}
 
