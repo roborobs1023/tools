@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"slices"
@@ -24,6 +25,7 @@ var (
 type Config struct {
 	DisableDisposableEmailCheck bool
 	DisableCatchAllCheck        bool
+	IgnoreEmptyFields           bool
 }
 
 func init() {
@@ -41,6 +43,10 @@ func Validate(val interface{}, cfg *Config) error {
 		verifier = verifier.DisableCatchAllCheck()
 	}
 
+	if !cfg.IgnoreEmptyFields {
+		cfg.IgnoreEmptyFields = true
+	}
+
 	v := reflect.ValueOf(val)
 fieldsLoop:
 	for i := 0; i < v.NumField(); i++ {
@@ -54,7 +60,11 @@ fieldsLoop:
 
 		rules := strings.Split(tag, ",")
 
+		if field.IsZero() && slices.Contains(rules, "optional") {
+			continue
+		}
 		for _, rule := range rules {
+
 			switch {
 			case rule == "required":
 				if err := validateRequired(field, fieldName); err != nil {
@@ -62,12 +72,12 @@ fieldsLoop:
 					continue fieldsLoop
 				}
 			case strings.HasPrefix(rule, "min="):
-				if err := validateMinLength(rule, field, fieldName); err != nil {
+				if err := validateMin(rule, field, fieldName); err != nil {
 					errs.Add(err)
 					continue fieldsLoop
 				}
 			case strings.HasPrefix(rule, "max="):
-				if err := validateMaxLength(rule, field, fieldName); err != nil {
+				if err := validateMax(rule, field, fieldName); err != nil {
 					errs.Add(err)
 				}
 
@@ -96,6 +106,7 @@ fieldsLoop:
 				if err := validateNonNumericStart(field, fieldName); err != nil {
 					errs.Add(err)
 				}
+
 			}
 		}
 	}
@@ -123,27 +134,64 @@ func validateRequired(field reflect.Value, fieldName string) error {
 	return nil
 }
 
-func validateMinLength(rule string, field reflect.Value, fieldName string) error {
-	min, _ := strconv.Atoi(strings.TrimPrefix(rule, "min="))
-	if len(field.String()) < min {
-		return fmt.Errorf(
-			"%s must be at least %d characters",
-			fieldName,
-			min,
-		)
+func validateMin(rule string, field reflect.Value, fieldName string) error {
+	if field.CanInt() {
+		min, _ := strconv.Atoi(strings.TrimPrefix(rule, "min="))
+		i := field.Int()
+
+		if i < int64(min) {
+
+			return fmt.Errorf("%s must be more than %v", fieldName, min)
+		} else {
+			return nil
+		}
+	} else if field.CanFloat() {
+		min, _ := strconv.ParseFloat(strings.TrimPrefix(rule, "min="), 64)
+		f := field.Float()
+
+		if f < min {
+			return fmt.Errorf("%s must be more than %v", fieldName, min)
+		}
+	} else {
+		min, _ := strconv.Atoi(strings.TrimPrefix(rule, "min="))
+		if len(field.String()) < min {
+			return fmt.Errorf(
+				"%s must be more than %d characters",
+				fieldName,
+				min,
+			)
+		}
 	}
 	return nil
 }
 
-func validateMaxLength(rule string, field reflect.Value, fieldName string) error {
-	max, _ := strconv.Atoi(strings.TrimPrefix(rule, "max="))
-	if len(field.String()) > max {
-		return fmt.Errorf(
-			"%s must be less than %d characters",
-			fieldName,
-			max,
-		)
+func validateMax(rule string, field reflect.Value, fieldName string) error {
+
+	if field.CanInt() {
+		max, _ := strconv.Atoi(strings.TrimPrefix(rule, "max="))
+		i := field.Int()
+
+		if i > int64(max) {
+			return fmt.Errorf("%s must be less than %v", fieldName, max)
+		}
+	} else if field.CanFloat() {
+		max, _ := strconv.ParseFloat(strings.TrimPrefix(rule, "max="), 64)
+		f := field.Float()
+
+		if f > max {
+			return fmt.Errorf("%s must be less than %v", fieldName, max)
+		}
+	} else {
+		max, _ := strconv.Atoi(strings.TrimPrefix(rule, "max="))
+		if len(field.String()) > max {
+			return fmt.Errorf(
+				"%s must be less than %d characters",
+				fieldName,
+				max,
+			)
+		}
 	}
+
 	return nil
 }
 
@@ -159,6 +207,12 @@ func validateEmail(field reflect.Value, fieldName string) error {
 	if !ret.Syntax.Valid {
 		return fmt.Errorf("invalid email syntax")
 	}
+
+	// err = validateNonDisposableDomain([]string{"email"}, field, fieldName)
+	// if err != nil {
+	// 	return fmt.Errorf("email has an invalid domain")
+	// }
+
 	return nil
 }
 
@@ -202,6 +256,7 @@ func validateNonDisposableDomain(rules []string, field reflect.Value, fieldName 
 		domain = field.String()
 	}
 
+	log.Println(domain)
 	if verifier.IsDisposable(domain) {
 		return fmt.Errorf("%s contains a disposable domain", fieldName)
 	}
@@ -210,7 +265,9 @@ func validateNonDisposableDomain(rules []string, field reflect.Value, fieldName 
 }
 
 func validateDomain(field reflect.Value, fieldName string) error {
-	if !CheckDomain(field.String()) {
+	exist, err := CheckDomain(field.String())
+	if !exist {
+		log.Printf("%s error: %s", fieldName, err)
 		return fmt.Errorf("%s is an invalid domain", fieldName)
 	}
 
