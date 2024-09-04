@@ -12,7 +12,7 @@ import (
 
 const keyFile = "sec/aes.key"
 
-func Encrypt(stringToEncrypt string) (string, error) {
+func EncryptString(stringToEncrypt string) (string, error) {
 	keyString, err := getKey(keyFile)
 	if err != nil {
 		return "", err
@@ -46,7 +46,7 @@ func Encrypt(stringToEncrypt string) (string, error) {
 	return fmt.Sprintf("%x", ciphertext), nil
 }
 
-func Decrypt(encryptedString string) (string, error) {
+func DecryptString(encryptedString string) (string, error) {
 	keyString, err := getKey(keyFile)
 	if err != nil {
 		return "", err
@@ -111,5 +111,9 @@ func createKeyFile() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func EncryptFile() error {
 	return nil
 }
