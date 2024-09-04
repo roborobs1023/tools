@@ -117,3 +117,7 @@ func createKeyFile() error {
 func EncryptFile() error {
 	return nil
 }
+
+func DecryptFile() error {
+	return nil
+}
